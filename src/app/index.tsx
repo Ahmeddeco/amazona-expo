@@ -1,98 +1,96 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+import ProductCard from "@/components/ProductCard"
+import SafeAreaView from "@/components/SafeAreaView"
+import { PRODUCTS } from "@/utils/constants"
+import { LinearGradient } from "expo-linear-gradient"
+import { useRouter } from "expo-router"
+import { ShoppingCart } from "lucide-react-native"
+import { useEffect, useState } from "react"
+import { FlatList, Image, Pressable, ScrollView, Text, View } from "react-native"
 
 export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+	const router = useRouter()
+	const [products, setProducts] = useState(PRODUCTS)
+	const [categories, setCategories] = useState<string[]>()
+	const [selectedCategory, setSelectedCategory] = useState<string>()
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+	const handleCategory = () => {
+		const categoriesSet = new Set<string>()
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+		products.forEach((product) => {
+			categoriesSet.add(product.category)
+		})
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
+		const allCategories = Array.from(categoriesSet)
+		setCategories(allCategories)
+	}
+
+	const handleCategoryPress = (category: string) => {
+		setSelectedCategory(category)
+		const filteredProducts = PRODUCTS.filter((product) => product.category === category)
+		setProducts(filteredProducts)
+	}
+
+	useEffect(() => {
+		handleCategory()
+	}, [])
+
+	return (
+		<SafeAreaView className="flex-1 bg-fantasy">
+			<View className="p-4 bg-white shadow-xs justify-between flex-row ">
+				<Text className="text-3xl">Amazona</Text>
+				<Pressable onPress={() => router.push("/cart")}>
+					<ShoppingCart size={24} />
+				</Pressable>
+			</View>
+			<FlatList
+				data={products}
+				keyExtractor={(item) => item.id.toString()}
+				numColumns={2}
+				showsVerticalScrollIndicator={false}
+				columnWrapperStyle={{ gap: 12 }}
+				contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
+				ListHeaderComponent={
+					<>
+						<Text className="text-cod-gray text-[32px] font-semibold ">Hello, welcome back!</Text>
+						<Text className="text-scorpion text-base py-1">Discover curated excellence for your lifestyle.</Text>
+						<View className="rounded-2xl overflow-hidden mt-4">
+							<Image source={{ uri: PRODUCTS[3].image }} style={{ width: "100%", height: 200 }} />
+							<View className="absolute top-36 left-5 flex gap-1 z-10">
+								<Text className="font-semibold text-white text-3xl">{PRODUCTS[3].name}</Text>
+								<Text className="font-medium text-white text-xl">$ {PRODUCTS[3].price}</Text>
+							</View>
+							<LinearGradient
+								pointerEvents="none"
+								colors={["transparent", "rgb(0,0,0,0.85)"]}
+								start={{ x: 0.5, y: 0 }}
+								end={{ x: 0.5, y: 1 }}
+								style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 220 }}
+							/>
+						</View>
+						<ScrollView horizontal showsHorizontalScrollIndicator={false}>
+							<View className="flex-row gap-4 mt-4">
+								{categories?.map((category, index) => (
+									<Pressable
+										key={index}
+										className={`rounded-full border px-4 py-2 mt-4 ${selectedCategory === category ? "bg-black" : "bg-white border-gray-300"}`}
+										onPress={() => handleCategoryPress(category)}
+									>
+										<Text className={`text-sm ${selectedCategory === category ? "text-white" : "text-black"} `}>
+											{category}
+										</Text>
+									</Pressable>
+								))}
+							</View>
+						</ScrollView>
+						<Text className="font-medium text-2xl mt-8 mb-4">Featured Products</Text>
+					</>
+				}
+				renderItem={({ item }) => (
+					<View className="flex-1">
+						<ProductCard product={item} />
+					</View>
+				)}
+			/>
+		</SafeAreaView>
+	)
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
-});
